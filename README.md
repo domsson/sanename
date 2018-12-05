@@ -20,6 +20,9 @@ Additionally, there is a list of allowed characters that will be kept.
 Currently, those are `-`, `_` and `.` - the dot being important because 
 it is usually used as a file separator.
 
+Currently not recursive, meaning it does not rename files that are in 
+subdirectories of the given directory.
+
 ## License
 
 sanename is free software, dedicated to the public domain. Do with it 
