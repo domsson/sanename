@@ -102,6 +102,18 @@ if len(sys.argv) < 2:
 # get the absolute path (we need that for os.replace())
 path = os.path.abspath(sys.argv[1])
 
+shift = ""
+if len(sys.argv) > 2:
+	shift = sys.argv[2].lower()
+	print("Will remove " + shift + " from the beginning of file names.")
+
+'''	
+pop = ""
+if len(sys.argv) > 3:
+	pop = sys.argv[3].lower()
+	print("Will remove " + pop + " from the end of file names.")
+'''
+
 # check if the given path is actually a directory
 if not os.path.isdir(path):
 	print("Error: not a directory: " + path)
@@ -139,6 +151,11 @@ if confirm == "n" or confirm == "no":
 # perfom the actual renaming!
 for f in files:
 	new_name = make_sane(f.name, allowed, charmap)
+	if new_name.startswith(shift):
+		new_name = new_name[len(shift):]
+	#if new_name.endswith(pop):
+	#	new_name = new_name[:len(new_name)-len(pop)]
+	#print(new_name)	
 	os.rename(f.path, os.path.join(path, new_name))
 
 # close our resources
