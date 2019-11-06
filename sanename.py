@@ -17,10 +17,21 @@ import re
 # globals
 #
 
-allowed = ["-", "_", "."]
+OPT_KEEP_WHEN_HEAD = 1
+OPT_KEEP_WHEN_BODY = 2
+OPT_KEEP_WHEN_TAIL = 4
+
+wordsep = "-"
+
+# For a rationale as to what characters are allowed/removed, see the follwing
+# link. We also remove the tilde because of its 'current dir' meaning in UNIX
+# https://stackoverflow.com/questions/695438/safe-characters-for-friendly-url
+
+allowed = ["-", "_", ".",]
+
+# TODO: what do we do with "&", "+", "," and maybe ";"?
 
 charmap = {
-	" ": "-",
 	"á": "a",
 	"à": "a",
 	"â": "a",
@@ -57,35 +68,71 @@ charmap = {
 	"ñ": "n",
 	"ý": "y",
 	"ÿ": "y",
+        "ẞ": "ss",
+        "ß": "ss"
 }
 
 #
 # functions
 #
 
-def make_sane(string, keep=[], charmap={}):
-	# Turn lowercase, strip whitespace at beginning and end
-	string = string.lower().strip()
-	# Now we swap some characters as specified in charmap
-	for search, replace in charmap.items():
-		string = string.replace(search, replace)
-	# Now we remove everything not alpha-numeric and not in keep
-	result = ""
-	for i, c in enumerate(string):
-		if c in keep: # allowed characters
-			result += c
-			continue
-		if ord(c) >= 48 and ord(c) <= 57: # 0-9
-			result += c
-			continue
-		if ord(c) >= 97 and ord(c) <= 122: # a-z
-			result += c
-			continue
-		if ord(c) >= 65 and ord(c) <= 90: # A-Z -> a-z
-			result += chr(ord(c) + 32)
-			continue
-	# Done, return it!
-	return result
+def make_sane(string, charmap={}, keep=[]):
+    sane = []
+    opts = 0
+
+    # split the input string on whitespace
+    tokens = string.split()
+
+    # sanitize every word
+    for i, token in enumerate(tokens):
+        # for the first word: keep dots and similar in the beginning and middle 
+        if i == 0: 
+            opts = OPT_KEEP_WHEN_HEAD | OPT_KEEP_WHEN_BODY
+        # for any other word: keep dots and similar only in the middle
+        else:
+            opts = OPT_KEEP_WHEN_BODY
+
+        sane.append(make_sane_token(token, charmap, keep, opts))
+
+    # join all words and return the string
+    return wordsep.join(sane)
+
+
+def make_sane_token(string, charmap={}, keep=[], opts=0):
+    # Turn to lower case and remove leading/trailing whitespace
+    string = string.lower().strip()
+
+    # Now we swap some characters as specified in charmap
+    for search, replace in charmap.items():
+        string = string.replace(search, replace)
+    
+    # Now we remove everything not alpha-numeric and not in keep
+    result = ""
+    for i, c in enumerate(string):
+        # keep chars from 'keep', if options allow it
+        if c in keep:
+            if i == 0:
+                if opts & OPT_KEEP_WHEN_HEAD:
+                    result += c
+                continue
+            if i == (len(string)-1):
+                if opts & OPT_KEEP_WHEN_TAIL:
+                    result += c
+                continue
+            if (opts & OPT_KEEP_WHEN_BODY):
+                result += c
+            continue
+        # keep 0-9
+        if ord(c) >= 48 and ord(c) <= 57:
+            result += c
+            continue
+        # keep a-z
+        if ord(c) >= 97 and ord(c) <= 122: 
+            result += c
+            continue
+       
+    # Done, return it!
+    return result
 
 #
 # usage
@@ -102,12 +149,12 @@ if len(sys.argv) < 2:
 # get the absolute path (we need that for os.replace())
 path = os.path.abspath(sys.argv[1])
 
+'''	
 shift = ""
 if len(sys.argv) > 2:
 	shift = sys.argv[2].lower()
 	print("Will remove " + shift + " from the beginning of file names.")
 
-'''	
 pop = ""
 if len(sys.argv) > 3:
 	pop = sys.argv[3].lower()
@@ -137,7 +184,7 @@ num_files = len(files)
 
 # if we haven't found any files? bye-bye
 if num_files is 0:
-	print("Error: directory empty: " + path)
+	print("Error: directory has no files: " + path)
 	sys.exit()
 
 # check if the user really wants to press on
@@ -150,13 +197,21 @@ if confirm == "n" or confirm == "no":
 
 # perfom the actual renaming!
 for f in files:
-	new_name = make_sane(f.name, allowed, charmap)
+        '''
 	if new_name.startswith(shift):
 		new_name = new_name[len(shift):]
 	#if new_name.endswith(pop):
 	#	new_name = new_name[:len(new_name)-len(pop)]
-	#print(new_name)	
-	os.rename(f.path, os.path.join(path, new_name))
+	'''
+        file_name, file_ext = os.path.splitext(f.name)
+        sane_name = make_sane(file_name, charmap, allowed)
+        sane_ext  = file_ext.lower()
+        sane_file = sane_name + sane_ext
+        #print(f.name + " => " + sane_file)
+
+        # TODO what's the diff between rename() and replace()?
+        os.rename(f.path, os.path.join(path, sane_file))
+        #os.replace(f.path, os.path.join(path, sane_file))
 
 # close our resources
 dir_iter.close()
