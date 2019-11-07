@@ -4,7 +4,7 @@ Renames all files within a given directory to what I consider _sane_:
 
 - No whitespace
 - All lowercase
-- Only a-z and 0-9
+- Only `a-z`, `0-9`, `-`, `_` and `.`
 
 ## Usage
 
@@ -15,10 +15,6 @@ Renames all files within a given directory to what I consider _sane_:
 Has a list of some common latin letters that are accented or otherwise 
 different from a-z, for example `á`, `ö`, `ñ` and similar. If those are 
 found, they will be replaced with their a-z "lookalikes". 
-
-Additionally, there is a list of allowed characters that will be kept. 
-Currently, those are `-`, `_` and `.` - the dot being important because 
-it is usually used as a file separator.
 
 Currently not recursive, meaning it does not rename files that are in 
 subdirectories of the given directory.
